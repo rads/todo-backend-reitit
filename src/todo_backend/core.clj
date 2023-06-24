@@ -23,9 +23,8 @@
         id (:id todo)]
     (merge todo {:url (str scheme "://" host "/todos/" id)})))
 
-(def app-routes
-  (ring/ring-handler
-   (ring/router
+(def router
+  (ring/router
     [["/swagger.json" {:get
                        {:no-doc  true
                         :swagger
@@ -46,9 +45,9 @@
                                  :handler todo/retrieve-todo}
                     :patch      {:summary "Updates the Todo resource."
                                  :handler (fn [{:keys [parameters body-params] :as req}] (-> body-params
-                                                                                            (store/update-todo (get-in parameters [:path :id]))
-                                                                                            (append-todo-url req)
-                                                                                            ok))}
+                                                                                             (store/update-todo (get-in parameters [:path :id]))
+                                                                                             (append-todo-url req)
+                                                                                             ok))}
                     :delete     {:summary "Removes the Todo resource."
                                  :handler (fn [{:keys [parameters]}] (store/delete-todos (get-in parameters [:path :id]))
                                             {:status 204})}}]]
@@ -59,7 +58,11 @@
                          rrc/coerce-response-middleware
                          rrc/coerce-request-middleware
                          [wrap-cors :access-control-allow-origin  #".*"
-                                    :access-control-allow-methods [:get :put :post :patch :delete]]]}})
+                          :access-control-allow-methods [:get :put :post :patch :delete]]]}}))
+
+(def app-routes
+  (ring/ring-handler
+   router
    (ring/routes
     (swagger-ui/create-swagger-ui-handler {:path "/"}))
    (ring/create-default-handler
