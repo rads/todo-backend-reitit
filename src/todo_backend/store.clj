@@ -1,12 +1,17 @@
 (ns todo-backend.store
   (:require [clojure.set :refer [rename-keys]]
             [next.jdbc :as jdbc]
+            [next.jdbc.connection :as jdbc-connection]
             [next.jdbc.result-set :as rs]
-            [next.jdbc.sql :as sql]))
+            [next.jdbc.sql :as sql])
+  (:import (com.zaxxer.hikari HikariDataSource)))
 
-(def ds (jdbc/get-datasource (System/getenv "JDBC_DATABASE_URL")))
-
-(def db (jdbc/with-options ds {:builder-fn rs/as-unqualified-lower-maps}))
+(defonce db
+  (jdbc/with-options
+    (jdbc-connection/->pool
+      HikariDataSource
+      {:jdbcUrl (System/getenv "JDBC_DATABASE_URL")})
+    {:builder-fn rs/as-unqualified-lower-maps}))
 
 (defn as-row [row]
   (rename-keys row {:order :position}))
