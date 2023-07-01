@@ -13,10 +13,6 @@
             [todo-backend.migration :refer [migrate]]
             [todo-backend.store :as store]))
 
-(defn ok [body]
-  {:status 200
-   :body body})
-
 (defn append-todo-url [todo request]
   (let [host (-> request :headers (get "host" "localhost"))
         scheme (name (:scheme request))
@@ -44,13 +40,9 @@
                     :get        {:summary "Retrieves a Todo resource."
                                  :handler todo/retrieve-todo}
                     :patch      {:summary "Updates the Todo resource."
-                                 :handler (fn [{:keys [parameters body-params] :as req}] (-> body-params
-                                                                                             (store/update-todo (get-in parameters [:path :id]))
-                                                                                             (append-todo-url req)
-                                                                                             ok))}
+                                 :handler todo/update-todo}
                     :delete     {:summary "Removes the Todo resource."
-                                 :handler (fn [{:keys [parameters]}] (store/delete-todos (get-in parameters [:path :id]))
-                                            {:status 204})}}]]
+                                 :handler todo/remove-todo}}]]
     {:data {:muuntaja   m/instance
             :coercion   rcs/coercion
             :middleware [rrmm/format-middleware
@@ -64,9 +56,10 @@
   (ring/ring-handler
    router
    (ring/routes
-    (swagger-ui/create-swagger-ui-handler {:path "/"}))
-   (ring/create-default-handler
-    {:not-found (constantly {:status 404 :body "Not found"})})))
+    (swagger-ui/create-swagger-ui-handler {:path "/"})
+    (ring/create-default-handler
+      {:not-found (constantly {:status 404 :body "Not found"})}))
+   {:middleware [store/wrap-db]}))
 
 (defn -main [port]
   (migrate)
